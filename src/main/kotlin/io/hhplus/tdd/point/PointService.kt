@@ -1,36 +1,36 @@
 package io.hhplus.tdd.point
 
-import io.hhplus.tdd.database.PointHistoryTable
-import io.hhplus.tdd.database.UserPointTable
+import io.hhplus.tdd.point.repository.PointHistoryRepository
+import io.hhplus.tdd.point.repository.PointRepository
 import org.springframework.stereotype.Service
 
 @Service
 class PointService(
-    private val userPointTable: UserPointTable,
-    private val pointHistoryTable: PointHistoryTable,
+    private val pointRepository: PointRepository,
+    private val pointHistoryRepository: PointHistoryRepository,
 ) {
     fun point(userId: Long): UserPoint {
-        return userPointTable.selectById(userId)
+        return pointRepository.findByUserId(userId)
     }
 
     fun history(userId: Long): List<PointHistory> {
-        return pointHistoryTable.selectAllByUserId(userId)
+        return pointHistoryRepository.findAllByUserId(userId)
     }
 
     fun charge(userId: Long, amount: Long): UserPoint {
-        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis())
-        return userPointTable.insertOrUpdate(userId, amount)
+        pointHistoryRepository.save(userId, amount, TransactionType.CHARGE)
+        return pointRepository.save(userId, amount)
     }
 
     fun use(userId: Long, amount: Long): UserPoint {
-        val current = userPointTable.selectById(userId)
+        val current = pointRepository.findByUserId(userId)
         if (current.point <= 0) {
             throw NoSuchElementException("No points available to use.")
         }
         if (current.point < amount) {
             throw IllegalArgumentException("Insufficient points available.")
         }
-        pointHistoryTable.insert(userId, amount, TransactionType.USE, System.currentTimeMillis())
-        return userPointTable.insertOrUpdate(userId, current.point - amount)
+        pointHistoryRepository.save(userId, amount, TransactionType.USE)
+        return pointRepository.save(userId, current.point - amount)
     }
 }

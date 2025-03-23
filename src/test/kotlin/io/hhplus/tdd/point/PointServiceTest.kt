@@ -2,6 +2,9 @@ package io.hhplus.tdd.point
 
 import io.hhplus.tdd.database.PointHistoryTable
 import io.hhplus.tdd.database.UserPointTable
+import io.hhplus.tdd.point.repository.PointHistoryRepository
+import io.hhplus.tdd.point.repository.PointHistoryRepositoryIml
+import io.hhplus.tdd.point.repository.PointRepositoryImpl
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -15,7 +18,9 @@ class PointServiceTest {
 
     @BeforeEach
     fun setUp() {
-        pointService = PointService(UserPointTable(), PointHistoryTable())
+        val pointRepository = PointRepositoryImpl(UserPointTable())
+        val pointHistoryRepository = PointHistoryRepositoryIml(PointHistoryTable())
+        pointService = PointService(pointRepository, pointHistoryRepository)
     }
 
     @Test
