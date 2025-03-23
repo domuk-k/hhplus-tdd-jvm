@@ -2,6 +2,7 @@ package io.hhplus.tdd.point
 
 import io.hhplus.tdd.database.PointHistoryTable
 import io.hhplus.tdd.database.UserPointTable
+import io.hhplus.tdd.point.policy.PointPolicyImpl
 import io.hhplus.tdd.point.repository.PointHistoryRepository
 import io.hhplus.tdd.point.repository.PointHistoryRepositoryIml
 import io.hhplus.tdd.point.repository.PointRepositoryImpl
@@ -15,12 +16,14 @@ class PointServiceTest {
 
     private lateinit var pointService: PointService
     private val id = 1L
+    private val MAX_BALANCE = 1234560L
 
     @BeforeEach
     fun setUp() {
         val pointRepository = PointRepositoryImpl(UserPointTable())
         val pointHistoryRepository = PointHistoryRepositoryIml(PointHistoryTable())
-        pointService = PointService(pointRepository, pointHistoryRepository)
+        val pointPolicy = PointPolicyImpl(MAX_BALANCE)
+        pointService = PointService(pointRepository, pointHistoryRepository, pointPolicy)
     }
 
     @Test
@@ -55,11 +58,19 @@ class PointServiceTest {
     }
 
     @Test
+    fun `정책에서 정한 최대 잔고 이상으로 충전을 시도하면 예외 발생`() {
+        assertThrows<IllegalArgumentException> {
+            pointService.charge(id, MAX_BALANCE + 1L)
+        }
+    }
+
+    @Test
     fun `충전 없이 포인트 사용 시 예외 발생`() {
-        assertThrows<NoSuchElementException> {
+        assertThrows<IllegalArgumentException> {
             pointService.use(id, 500L)
         }
     }
+
 
     @Test
     fun `보유 포인트 초과 사용 시 예외 발생`() {
