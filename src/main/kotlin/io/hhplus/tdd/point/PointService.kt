@@ -1,6 +1,7 @@
 package io.hhplus.tdd.point
 
-import io.hhplus.tdd.point.policy.PointPolicy
+import io.hhplus.tdd.point.dto.PointUpdateDto
+import io.hhplus.tdd.point.policy.ChargePointPolicy
 import io.hhplus.tdd.point.repository.PointHistoryRepository
 import io.hhplus.tdd.point.repository.PointRepository
 import org.springframework.stereotype.Service
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Service
 class PointService(
     private val pointRepository: PointRepository,
     private val pointHistoryRepository: PointHistoryRepository,
-    private val pointPolicy: PointPolicy
+    private val chargePointPolicies: Array<ChargePointPolicy>
 ) {
     fun point(userId: Long): UserPoint {
         return pointRepository.findByUserId(userId)
@@ -19,19 +20,21 @@ class PointService(
         return pointHistoryRepository.findAllByUserId(userId)
     }
 
-    fun charge(userId: Long, amount: Long): UserPoint {
+    fun charge(userId: Long, request: PointUpdateDto): UserPoint {
         val current = pointRepository.findByUserId(userId)
-        pointPolicy.validateCharge(current.point, amount)
+        // 충전 정책은 "포인트" 도메인 자체보다, 외부(비즈니스) 상황에 의존한다. 외부에서 주입받은 정책들로만 검증한다.
+        chargePointPolicies.forEach { it.validate(current, request.amount) }
+        val charged = current.charge(request.amount)
 
-        pointHistoryRepository.save(userId, amount, TransactionType.CHARGE)
-        return pointRepository.save(userId, amount)
+        pointHistoryRepository.save(userId, request.amount, TransactionType.CHARGE)
+        return pointRepository.save(userId, charged.point)
     }
 
-    fun use(userId: Long, amount: Long): UserPoint {
+    fun use(userId: Long, request: PointUpdateDto): UserPoint {
         val current = pointRepository.findByUserId(userId)
-        pointPolicy.validateUse(current.point, amount)
+        val leftover = current.use(request.amount)
 
-        pointHistoryRepository.save(userId, amount, TransactionType.USE)
-        return pointRepository.save(userId, current.point - amount)
+        pointHistoryRepository.save(userId, request.amount, TransactionType.USE)
+        return pointRepository.save(userId, leftover.point)
     }
 }
