@@ -17,6 +17,7 @@ class PointServiceTest {
 
     private lateinit var pointService: PointService
     private val id = 1L
+    private val arbitraryNow = System.currentTimeMillis()
     private val MAX_BALANCE = 1234560L
 
     private lateinit var pointHistoryRepository: PointHistoryRepository
@@ -24,19 +25,12 @@ class PointServiceTest {
 
     @BeforeEach
     fun setUp() {
-        pointRepository = mockk<PointRepository>()
-        pointHistoryRepository = mockk<PointHistoryRepository>()
+        pointRepository = mockk<PointRepository>(relaxed = true)
+        pointHistoryRepository = mockk<PointHistoryRepository>(relaxed = true)
 
         val now = System.currentTimeMillis()
-        every { pointRepository.save(any(), any()) } answers {
-            UserPoint(firstArg(), secondArg(), now)
-        }
-        every { pointHistoryRepository.save(any(), any(), any()) } answers {
-            PointHistory(1, firstArg(), thirdArg(), secondArg(), now)
-        }
-        every { pointRepository.findByUserId(id) } answers {
-            UserPoint(firstArg(), 1000L, now)
-        }
+
+        every { pointRepository.findByUserId(id) } answers { UserPoint(firstArg(), 1000L, now) }
 
         val pointPolicy = PointPolicyImpl(MAX_BALANCE)
         pointService = PointService(pointRepository, pointHistoryRepository, pointPolicy)
@@ -50,13 +44,12 @@ class PointServiceTest {
 
     @Test
     fun `포인트 충전,사용 후 포인트 변동 내역을 조회할 수 있다`() {
-        val now = System.currentTimeMillis()
         every { pointHistoryRepository.findAllByUserId(id) } returns listOf(
-            PointHistory(1, id, TransactionType.CHARGE, 1000L, now),
-            PointHistory(2, id, TransactionType.USE, 200L, now)
+            PointHistory(1, id, TransactionType.CHARGE, 1000L, arbitraryNow),
+            PointHistory(2, id, TransactionType.USE, 200L, arbitraryNow)
         )
-        every { pointRepository.save(any(), any()) } answers { UserPoint(id, 800L, now) }
-        every { pointRepository.findByUserId(any()) } answers { UserPoint(id, 800L, now) }
+        every { pointRepository.save(any(), any()) } answers { UserPoint(id, 800L, arbitraryNow) }
+        every { pointRepository.findByUserId(any()) } answers { UserPoint(id, 800L, arbitraryNow) }
 
         pointService.charge(id, 1000L)
 
@@ -71,9 +64,11 @@ class PointServiceTest {
 
 
     @Nested
-    inner class 포인트충전 {
+    inner class 포인트_충전 {
         @Test
         fun `충천 후 결과를 반환한다`() {
+            every { pointRepository.save(any(), any()) } answers { UserPoint(firstArg(), secondArg(), arbitraryNow) }
+
             val updated = pointService.charge(id, 1000L)
             assertEquals(1000L, updated.point)
         }
@@ -91,9 +86,7 @@ class PointServiceTest {
     inner class 포인트_사용 {
         @Test
         fun `포인트 사용 후 결과를 반환한다`() {
-            val now = System.currentTimeMillis()
-            every { pointRepository.save(any(), any()) } answers { UserPoint(id, 1500L, now) }
-
+            every { pointRepository.save(any(), any()) } answers { UserPoint(id, 1500L, arbitraryNow) }
 
             pointService.charge(id, 2000L)
             val updated = pointService.use(id, 500L)
@@ -103,11 +96,12 @@ class PointServiceTest {
         @Test
         fun `충전 없이 포인트 사용 시 예외가 발생한다`() {
             val deposit = 0L
-            val now = System.currentTimeMillis()
-            every { pointRepository.findByUserId(id) } returns UserPoint(id, deposit, now)
+            val toUse = 1L
+
+            every { pointRepository.findByUserId(id) } answers { UserPoint(id, deposit, arbitraryNow) }
 
             assertThrows<IllegalArgumentException> {
-                pointService.use(id, 500L)
+                pointService.use(id, toUse)
             }
         }
 
@@ -115,12 +109,14 @@ class PointServiceTest {
         @Test
         fun `보유 포인트 초과 사용 시 예외가 발생한다`() {
             val deposit = 300L
-            val now = System.currentTimeMillis()
-            every { pointRepository.findByUserId(id) } returns UserPoint(id, deposit, now)
+            val exceedsDeposit = deposit + 1L
+
+            every { pointRepository.findByUserId(id) } answers { UserPoint(id, deposit, arbitraryNow) }
 
             pointService.charge(id, deposit)
+
             assertThrows<IllegalArgumentException> {
-                pointService.use(id, deposit + 1L)
+                pointService.use(id, exceedsDeposit)
             }
         }
     }
