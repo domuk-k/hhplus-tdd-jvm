@@ -1,8 +1,10 @@
 package io.hhplus.tdd.point
 
+import io.hhplus.tdd.point.dto.PointUpdateDto
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
+import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/point")
@@ -33,9 +35,9 @@ class PointController(
     @PatchMapping("{id}/charge")
     fun charge(
         @PathVariable id: Long,
-        @RequestBody amount: Long,
+        @Valid @RequestBody request: PointUpdateDto,
     ): UserPoint {
-        return pointService.charge(id, amount)
+        return pointService.charge(id, request)
     }
 
     /**
@@ -44,8 +46,9 @@ class PointController(
     @PatchMapping("{id}/use")
     fun use(
         @PathVariable id: Long,
-        @RequestBody amount: Long,
+        @Valid @RequestBody request: PointUpdateDto,
     ): UserPoint {
-        return pointService.use(id, amount)
+        return pointService.use(id, request)
     }
 }
+
