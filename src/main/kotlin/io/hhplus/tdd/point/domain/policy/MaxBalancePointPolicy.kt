@@ -1,6 +1,6 @@
-package io.hhplus.tdd.point.policy
+package io.hhplus.tdd.point.domain.policy
 
-import io.hhplus.tdd.point.UserPoint
+import io.hhplus.tdd.point.domain.entity.UserPoint
 import org.springframework.stereotype.Component
 
 @Component

@@ -1,6 +1,6 @@
 package io.hhplus.tdd.database
 
-import io.hhplus.tdd.point.UserPoint
+import io.hhplus.tdd.point.domain.entity.UserPoint
 import org.springframework.stereotype.Component
 
 /**

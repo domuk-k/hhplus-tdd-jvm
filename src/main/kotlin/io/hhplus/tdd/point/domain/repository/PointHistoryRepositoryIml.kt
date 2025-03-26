@@ -1,8 +1,8 @@
-package io.hhplus.tdd.point.repository
+package io.hhplus.tdd.point.domain.repository
 
 import io.hhplus.tdd.database.PointHistoryTable
-import io.hhplus.tdd.point.PointHistory
-import io.hhplus.tdd.point.TransactionType
+import io.hhplus.tdd.point.domain.entity.PointHistory
+import io.hhplus.tdd.point.domain.entity.TransactionType
 import org.springframework.stereotype.Repository
 
 @Repository

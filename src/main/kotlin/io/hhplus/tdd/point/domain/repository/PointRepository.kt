@@ -1,6 +1,6 @@
-package io.hhplus.tdd.point.repository
+package io.hhplus.tdd.point.domain.repository
 
-import io.hhplus.tdd.point.UserPoint
+import io.hhplus.tdd.point.domain.entity.UserPoint
 
 /**
  * 포인트 저장소 인터페이스
