@@ -26,6 +26,7 @@ dependencies {
     annotationProcessor(libs.spring.boot.configuration.processor)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation("io.mockk:mockk:1.12.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }
 
 // about source and compilation
