@@ -1,37 +1,32 @@
 package io.hhplus.tdd.point
 
-import io.hhplus.tdd.point.dto.PointUpdateDto
-import io.hhplus.tdd.point.policy.ChargePointPolicy
-import io.hhplus.tdd.point.repository.PointHistoryRepository
-import io.hhplus.tdd.point.repository.PointRepository
+import io.hhplus.tdd.point.domain.command.PointCommand
+import io.hhplus.tdd.point.domain.policy.ChargePointPolicy
+import io.hhplus.tdd.point.domain.repository.PointHistoryRepository
+import io.hhplus.tdd.point.domain.repository.PointRepository
+import io.hhplus.tdd.point.domain.PointService
+import io.hhplus.tdd.point.domain.entity.PointHistory
+import io.hhplus.tdd.point.domain.entity.TransactionType
+import io.hhplus.tdd.point.domain.entity.UserPoint
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 
 class PointServiceTest {
+    private val pointRepository: PointRepository = mockk<PointRepository>(relaxed = true)
+    private val pointHistoryRepository: PointHistoryRepository = mockk<PointHistoryRepository>(relaxed = true)
+    private val chargePolicy: ChargePointPolicy = mockk<ChargePointPolicy>(relaxed = true)
 
-    private lateinit var pointService: PointService
+    private val pointService: PointService =
+        PointService(pointRepository, pointHistoryRepository, arrayOf(chargePolicy))
+
     private val id = 1L
     private val arbitraryNow = System.currentTimeMillis()
-
-    private lateinit var pointHistoryRepository: PointHistoryRepository
-    private lateinit var pointRepository: PointRepository
-    private lateinit var chargePolicy: ChargePointPolicy
-
-    @BeforeEach
-    fun setUp() {
-        pointRepository = mockk<PointRepository>(relaxed = true)
-        pointHistoryRepository = mockk<PointHistoryRepository>(relaxed = true)
-        chargePolicy = mockk<ChargePointPolicy>(relaxed = true)
-
-        pointService = PointService(pointRepository, pointHistoryRepository, arrayOf(chargePolicy))
-    }
 
     @Test
     fun `임의 유저의 포인트 조회할 수 있다`() {
@@ -48,9 +43,9 @@ class PointServiceTest {
         every { pointRepository.save(any(), any()) } answers { UserPoint(id, 800L, arbitraryNow) }
         every { pointRepository.findByUserId(any()) } answers { UserPoint(id, 800L, arbitraryNow) }
 
-        pointService.charge(id, PointUpdateDto(1000L))
+        pointService.charge(id, PointCommand.Charge(1000L))
 
-        val remainingPoint = pointService.use(id, PointUpdateDto(200L))
+        val remainingPoint = pointService.use(id, PointCommand.Use(200L))
         val histories = pointService.history(id)
         assertEquals(2, histories.size)
         assertTrue(histories.any { it.type.name == "CHARGE" && it.amount == 1000L })
@@ -72,19 +67,18 @@ class PointServiceTest {
                 UserPoint(id, secondArg(), arbitraryNow)
             }
 
-            val updated = pointService.charge(id, PointUpdateDto(toAdd))
+            val updated = pointService.charge(id, PointCommand.Charge(toAdd))
             assertEquals(previousDeposit + toAdd, updated.point)
         }
 
         @Test
         fun `정책에서 정한 충전 정책을 위반하면 예외가 발생한다`() {
             every { chargePolicy.validate(any(), any()) } throws IllegalArgumentException()
-            
+
             assertThrows<IllegalArgumentException> {
-                pointService.charge(id, PointUpdateDto(1L))
+                pointService.charge(id, PointCommand.Charge(1L))
             }
         }
-
     }
 
     @Nested
@@ -93,8 +87,8 @@ class PointServiceTest {
         fun `포인트 사용 후 결과를 반환한다`() {
             every { pointRepository.save(any(), any()) } answers { UserPoint(id, 1500L, arbitraryNow) }
 
-            pointService.charge(id, PointUpdateDto(2000L))
-            val updated = pointService.use(id, PointUpdateDto(500L))
+            pointService.charge(id, PointCommand.Charge(2000L))
+            val updated = pointService.use(id, PointCommand.Use(500L))
             assertEquals(1500L, updated.point)
         }
 
@@ -106,7 +100,7 @@ class PointServiceTest {
             every { pointRepository.findByUserId(id) } answers { UserPoint(id, deposit, arbitraryNow) }
 
             assertThrows<IllegalArgumentException> {
-                pointService.use(id, PointUpdateDto(toUse))
+                pointService.use(id, PointCommand.Use(toUse))
             }
         }
 
@@ -118,10 +112,10 @@ class PointServiceTest {
 
             every { pointRepository.findByUserId(id) } answers { UserPoint(id, deposit, arbitraryNow) }
 
-            pointService.charge(id, PointUpdateDto(deposit))
+            pointService.charge(id, PointCommand.Charge(deposit))
 
             assertThrows<IllegalArgumentException> {
-                pointService.use(id, PointUpdateDto(exceedsDeposit))
+                pointService.use(id, PointCommand.Use(exceedsDeposit))
             }
         }
     }

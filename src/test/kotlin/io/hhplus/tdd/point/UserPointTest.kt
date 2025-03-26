@@ -1,5 +1,6 @@
 package io.hhplus.tdd.point
 
+import io.hhplus.tdd.point.domain.entity.UserPoint
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 

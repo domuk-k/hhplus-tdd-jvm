@@ -1,6 +1,7 @@
 package io.hhplus.tdd.point.policy
 
-import io.hhplus.tdd.point.UserPoint
+import io.hhplus.tdd.point.domain.entity.UserPoint
+import io.hhplus.tdd.point.domain.policy.MaxBalancePointPolicy
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
