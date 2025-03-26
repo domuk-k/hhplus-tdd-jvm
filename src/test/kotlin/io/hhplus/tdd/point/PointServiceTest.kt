@@ -12,6 +12,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -31,27 +32,29 @@ class PointServiceTest {
     @Test
     fun `임의 유저의 포인트 조회할 수 있다`() {
         val point = pointService.point(id)
-        assertEquals(0L, point.point)
+        assertThat(point.point).isEqualTo(0L)
     }
 
-    @Test
-    fun `포인트 충전,사용 후 포인트 변동 내역을 조회할 수 있다`() {
-        every { pointHistoryRepository.findAllByUserId(id) } returns listOf(
-            PointHistory(1, id, TransactionType.CHARGE, 1000L, arbitraryNow),
-            PointHistory(2, id, TransactionType.USE, 200L, arbitraryNow)
-        )
-        every { pointRepository.save(any(), any()) } answers { UserPoint(id, 800L, arbitraryNow) }
-        every { pointRepository.findByUserId(any()) } answers { UserPoint(id, 800L, arbitraryNow) }
+    @Nested
+    inner class 포인트_변동내역 {
+        @Test
+        fun `포인트 충전 또는 사용하고, 포인트 변동 내역을 조회하면 해당 내역을 `() {
+            every { pointHistoryRepository.findAllByUserId(id) } returns listOf(
+                PointHistory(1, id, TransactionType.CHARGE, 1000L, arbitraryNow),
+                PointHistory(2, id, TransactionType.USE, 200L, arbitraryNow)
+            )
+            every { pointRepository.save(any(), any()) } answers { UserPoint(id, 800L, arbitraryNow) }
+            every { pointRepository.findByUserId(any()) } answers { UserPoint(id, 800L, arbitraryNow) }
 
-        pointService.charge(id, PointCommand.Charge(1000L))
+            pointService.charge(id, PointCommand.Charge(1000L))
+            pointService.use(id, PointCommand.Use(200L))
 
-        val remainingPoint = pointService.use(id, PointCommand.Use(200L))
-        val histories = pointService.history(id)
-        assertEquals(2, histories.size)
-        assertTrue(histories.any { it.type.name == "CHARGE" && it.amount == 1000L })
-        assertTrue(histories.any { it.type.name == "USE" && it.amount == 200L })
-        println(remainingPoint)
-        assertEquals(pointService.point(id), remainingPoint)
+            val histories = pointService.history(id)
+
+            assertThat(histories).hasSize(2)
+            assertThat(histories).contains(PointHistory(1, id, TransactionType.CHARGE, 1000L, arbitraryNow))
+            assertThat(histories).contains(PointHistory(2, id, TransactionType.USE, 200L, arbitraryNow))
+        }
     }
 
 
@@ -84,16 +87,17 @@ class PointServiceTest {
     @Nested
     inner class 포인트_사용 {
         @Test
-        fun `포인트 사용 후 결과를 반환한다`() {
+        fun `포인트를 충전한 후 사용하면 해당 포인트 만큼 차감된다`() {
             every { pointRepository.save(any(), any()) } answers { UserPoint(id, 1500L, arbitraryNow) }
 
             pointService.charge(id, PointCommand.Charge(2000L))
+
             val updated = pointService.use(id, PointCommand.Use(500L))
-            assertEquals(1500L, updated.point)
+            assertThat(updated.point).isEqualTo(1500L)
         }
 
         @Test
-        fun `충전 없이 포인트 사용 시 예외가 발생한다`() {
+        fun `포인트가 없는 유저가 포인트 사용 시 예외가 발생한다`() {
             val deposit = 0L
             val toUse = 1L
 
@@ -106,7 +110,7 @@ class PointServiceTest {
 
 
         @Test
-        fun `보유 포인트 초과 사용 시 예외가 발생한다`() {
+        fun `일정 잔고를 가진 유저가 잔고 이상으로 포인트 사용 시 예외가 발생한다`() {
             val deposit = 300L
             val exceedsDeposit = deposit + 1L
 
