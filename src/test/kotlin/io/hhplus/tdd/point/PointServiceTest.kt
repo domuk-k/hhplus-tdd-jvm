@@ -1,5 +1,8 @@
 package io.hhplus.tdd.point
 
+import io.hhplus.tdd.common.util.ConcurrencyHandler
+import io.hhplus.tdd.common.util.ReentrantLockConcurrencyHandler
+import io.hhplus.tdd.common.util.ReentrantLockImplTest
 import io.hhplus.tdd.point.domain.command.PointCommand
 import io.hhplus.tdd.point.domain.policy.ChargePointPolicy
 import io.hhplus.tdd.point.domain.repository.PointHistoryRepository
@@ -11,7 +14,6 @@ import io.hhplus.tdd.point.domain.entity.UserPoint
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -22,9 +24,10 @@ class PointServiceTest {
     private val pointRepository: PointRepository = mockk<PointRepository>(relaxed = true)
     private val pointHistoryRepository: PointHistoryRepository = mockk<PointHistoryRepository>(relaxed = true)
     private val chargePolicy: ChargePointPolicy = mockk<ChargePointPolicy>(relaxed = true)
+    private val concurrencyHandler: ConcurrencyHandler = ReentrantLockConcurrencyHandler()
 
     private val pointService: PointService =
-        PointService(pointRepository, pointHistoryRepository, arrayOf(chargePolicy))
+        PointService(pointRepository, pointHistoryRepository, arrayOf(chargePolicy), concurrencyHandler)
 
     private val id = 1L
     private val arbitraryNow = System.currentTimeMillis()

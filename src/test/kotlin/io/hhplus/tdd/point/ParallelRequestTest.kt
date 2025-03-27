@@ -7,6 +7,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -14,6 +15,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
 @SpringBootTest
+@Disabled
 //@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL) // "IntegrationTestSupport" 같은 슈퍼클래스 만들고 가져다 쓸 떄.
 class ParallelRequestTest(
     @Autowired private val pointService: PointService

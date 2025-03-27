@@ -27,6 +27,7 @@ dependencies {
     testImplementation(libs.spring.boot.starter.test)
     testImplementation("io.mockk:mockk:1.12.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 }
 
 // about source and compilation
