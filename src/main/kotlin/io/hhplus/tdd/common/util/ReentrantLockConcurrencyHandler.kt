@@ -4,19 +4,14 @@ import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 @Component
-@Primary
 class ReentrantLockConcurrencyHandler : ConcurrencyHandler {
     private val map = ConcurrentHashMap<Long, ReentrantLock>()
 
     override fun <T> withLock(key: Long, block: () -> T): T {
-        val lock = map.computeIfAbsent(key) { ReentrantLock() }
-        lock.lock()
-        try {
-            return block()
-        } finally {
-            lock.unlock()
-        }
+        val lock = map.computeIfAbsent(key) { ReentrantLock(true) }
+        return lock.withLock(block)
     }
 }
